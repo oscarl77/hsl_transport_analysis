@@ -28,31 +28,9 @@ def on_message(client, userdata, msg):
     try:
         feed = gtfs_realtime_pb2.FeedMessage()
         feed.ParseFromString(msg.payload)
-        for entity in feed.entity:
-            if entity.HasField("vehicle"):
-                vehicle_data = entity.vehicle
-
-                # Extract telemetry data
-                if vehicle_data.trip.HasField("route_id"):
-                    route_id = vehicle_data.trip.route_id
-                else:
-                    route_id = "Unknown"
-                if vehicle_data.HasField('vehicle') and vehicle_data.vehicle.HasField('id'):
-                    vehicle_id = vehicle_data.vehicle.id
-                else:
-                    vehicle_id = "Unknown"
-                lat = vehicle_data.position.latitude
-                lon = vehicle_data.position.longitude
-                timestamp = vehicle_data.timestamp
-                if lat and lon:
-                    # Append flat dictionary to memory buffer
-                    memory_buffer.append({
-                        'route_id': route_id,
-                        'vehicle_id': vehicle_id,
-                        'lat': lat,
-                        'lon': lon,
-                        'ts': timestamp
-                    })
+        
+        records = extract_telemetry_from_feed(feed)
+        memory_buffer.extend(records)
         
         # Once buffer hits the threshold, commit to DuckDB and flush
         if len(memory_buffer) >= BATCH_LIMIT:
@@ -78,4 +56,32 @@ def start_pipeline():
     
     # Block process and loop continuously handling reconnections natively
     client.loop_forever()
-    
+
+
+def extract_telemetry_from_feed(feed):
+    """Extracts telemetry data from a GTFS Realtime feed message.
+
+    Args:
+        feed (gtfs_realtime_pb2.FeedMessage): The GTFS Realtime feed message.
+    """
+    records = []
+    for entity in feed.entity:
+        if entity.HasField("vehicle"):
+            vehicle_data = entity.vehicle
+
+            # Extract telemetry data
+            route_id = vehicle_data.trip.route_id if vehicle_data.trip.HasField("route_id") else "Unknown"
+            vehicle_id = vehicle_data.vehicle.id if vehicle_data.HasField('vehicle') and vehicle_data.vehicle.HasField('id') else "Unknown"
+            lat = vehicle_data.position.latitude
+            lon = vehicle_data.position.longitude
+            timestamp = vehicle_data.timestamp
+
+            if lat and lon:
+                records.append({
+                    'route_id': route_id,
+                    'vehicle_id': vehicle_id,
+                    'lat': lat,
+                    'lon': lon,
+                    'ts': timestamp
+                })
+    return records
