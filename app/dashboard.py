@@ -34,7 +34,8 @@ map_placeholder = st.empty()
 
 while True:
     # 3. Read the latest positions from DuckDB
-    conn = duckdb.connect(str(config.DB_PATH), read_only=True)
+    conn = duckdb.connect()
+    conn.execute(f"ATTACH '{config.DB_PATH}' AS transit_db (READ_ONLY);")
     try:
         # Window function query: Grab only the absolute latest timestamp for each distinct route_id
         df = conn.sql("""
