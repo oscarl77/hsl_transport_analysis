@@ -1,0 +1,27 @@
+name: Continuous Deployment Pipeline
+
+# Trigger this workflow every single time code is pushed to the main production branch
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Build & Deploy Container to Fly.io
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pull down the updated source code from repository
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # Setup official Fly.io command line tool on the runner machine
+      - name: Setup Flyway CLI Engine
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # Authenticate and deploy the code straight to the cloud data centers.
+      # This uses a secure API token stored safely inside your GitHub repo settings.
+      - name: Streamlined Production Build and Release
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

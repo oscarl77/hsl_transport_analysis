@@ -9,6 +9,7 @@ def initialise_db():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS tram_telemetry (
             route_id VARCHAR,
+            vehicle_id VARCHAR,
             latitude DOUBLE,
             longitude DOUBLE,
             timestamp BIGINT,
@@ -32,13 +33,13 @@ def insert_telemetry_batch(records):
     # and append it in a single highly-optimized transactional block
     try:
         # Transform our array of dictionaries into a clean matrix of raw positional values
-        data_matrix = [[r['route_id'], r['lat'], r['lon'], r['ts']] for r in records]
+        data_matrix = [[r['route_id'], r['vehicle_id'], r['lat'], r['lon'], r['ts']] for r in records]
         
-        # Using executemany tells the engine to map the 4 placeholders 
+        # Using executemany tells the engine to map the 5 placeholders 
         # to each individual array entry across the entire collection sequentially.
         conn.executemany("""
-            INSERT INTO tram_telemetry (route_id, latitude, longitude, timestamp)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO tram_telemetry (route_id, vehicle_id, latitude, longitude, timestamp)
+            VALUES (?, ?, ?, ?, ?)
         """, data_matrix)
     except Exception as e:
         print(f"Database Write Failure: {e}")
