@@ -79,8 +79,8 @@ while True:
             "ScatterplotLayer",
             df,
             get_position="[longitude, latitude]",
-            get_color="[255, 100, 0, 160]",
-            get_radius=150,
+            get_color="[59, 202, 46, 255]",
+            get_radius=80,
             pickable=True
         )
         
