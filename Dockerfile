@@ -19,8 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the source code packages into the application zone
-COPY pipeline/ ./pipeline/
-COPY run_pipeline.py .
+COPY . .
 
 # Create an explicit directory mount point for our persistent database volume
 RUN mkdir -p /app/data
