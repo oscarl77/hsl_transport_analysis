@@ -33,7 +33,7 @@ def insert_telemetry_batch(records):
     # and append it in a single highly-optimized transactional block
     try:
         # Transform our array of dictionaries into a clean matrix of raw positional values
-        data_matrix = [[r['route_id'], r['vehicle_id'], r['lat'], r['lon'], r['ts']] for r in records]
+        data_matrix = [[r['route_id'], r['vehicle_id'], r['latitude'], r['longitude'], r['timestamp']] for r in records]
         
         # Using executemany tells the engine to map the 5 placeholders 
         # to each individual array entry across the entire collection sequentially.

@@ -80,8 +80,8 @@ def extract_telemetry_from_feed(feed):
                 records.append({
                     'route_id': route_id,
                     'vehicle_id': vehicle_id,
-                    'lat': lat,
-                    'lon': lon,
-                    'ts': timestamp
+                    'latitude': lat,
+                    'longitude': lon,
+                    'timestamp': timestamp
                 })
     return records

@@ -22,9 +22,9 @@ def test_extract_telemetry_from_feed_success():
     record = records[0]
     assert record['route_id'] == "1001"
     assert record['vehicle_id'] == "CAR_1"
-    assert record['lat'] == pytest.approx(60.142, abs=1e-3)
-    assert record['lon'] == pytest.approx(24.9, abs=1e-3)
-    assert record['ts'] == 1000
+    assert record['latitude'] == pytest.approx(60.142, abs=1e-3)
+    assert record['longitude'] == pytest.approx(24.9, abs=1e-3)
+    assert record['timestamp'] == 1000
 
 def test_extract_telemetry_from_feed_missing_fields():
     """Verify that the extraction function handles missing fields gracefully."""
@@ -44,6 +44,6 @@ def test_extract_telemetry_from_feed_missing_fields():
     record = records[0]
     assert record['route_id'] == "Unknown"
     assert record['vehicle_id'] == "Unknown"
-    assert record['lat'] == pytest.approx(60.289, abs=1e-3)
-    assert record['lon'] == pytest.approx(24.8, abs=1e-3)
-    assert record['ts'] == 2000
+    assert record['latitude'] == pytest.approx(60.289, abs=1e-3)
+    assert record['longitude'] == pytest.approx(24.8, abs=1e-3)
+    assert record['timestamp'] == 2000
