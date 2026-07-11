@@ -13,7 +13,7 @@ jobs:
     steps:
       # Pull down the updated source code from repository
       - name: Checkout Source Code
-        uses: actions/actions/checkout@v4
+        uses: actions/checkout@v4
 
       # Setup official Fly.io command line tool on the runner machine
       - name: Setup Flyway CLI Engine
