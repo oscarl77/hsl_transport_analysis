@@ -25,6 +25,8 @@ jobs:
           pip install pytest  # Automated test runner
 
       - name: Run Pytest Suite
+        env:
+            DIGITRANSIT_API_KEY: "mock_key_for_ci_testing_only"
         run: |
           # Executes any test files sitting in a tests/ folder
           pytest
