@@ -13,7 +13,6 @@ def initialise_db():
             latitude DOUBLE,
             longitude DOUBLE,
             timestamp BIGINT,
-            captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
     conn.close()
