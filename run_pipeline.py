@@ -62,7 +62,7 @@ if __name__ == "__main__":
     logger.info(f"Connecting to MQTT Broker at {config.MQTT_BROKER}:{config.MQTT_PORT}...")
     client.connect(config.MQTT_BROKER, config.MQTT_PORT, keepalive=60)
     # Subscribe to transit telemetry topic
-    client.subscribe(config.MQTT_TOPIC)
-    logger.info(f"Subscribed to topic: {config.MQTT_TOPIC}. Starting network loop...")
+    client.subscribe(config.TRAM_TOPIC)
+    logger.info(f"Subscribed to topic: {config.TRAM_TOPIC}. Starting network loop...")
     # Blocking call: Keeps the container process alive & listens for incoming messages
     client.loop_forever()
