@@ -1,12 +1,14 @@
 import time
-from pathlib import Path
-import sys
-
 import pandas as pd
 import pydeck as pdk
 from sqlalchemy import create_engine
 import streamlit as st
 
+import sys
+from pathlib import Path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 from pipeline.config import DATABASE_URL
 
 # Page Configuration
