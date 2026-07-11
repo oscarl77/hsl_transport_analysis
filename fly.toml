@@ -1,0 +1,16 @@
+app = "hsl-transport-worker" # Change this to a unique name
+primary_region = "hel" # Helsinki data center for ultra-low latency!
+
+[build]
+  dockerfile = "Dockerfile"
+
+# This block tells the cloud host to plug our persistent virtual drive 
+# straight into the /app/data folder we created inside our Dockerfile
+[[mounts]]
+  source = "transit_storage"
+  destination = "/app/data"
+
+# Because this is a background ingestion worker that doesn't need to serve public HTTP traffic,
+# we strip out all standard web server proxy rules to maximize computing efficiency.
+[env]
+  DB_PATH = "/app/data/transit_analytics.db"

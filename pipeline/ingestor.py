@@ -37,6 +37,10 @@ def on_message(client, userdata, msg):
                     route_id = vehicle_data.trip.route_id
                 else:
                     route_id = "Unknown"
+                if vehicle_data.HasField('vehicle') and vehicle_data.vehicle.HasField('id'):
+                    vehicle_id = vehicle_data.vehicle.id
+                else:
+                    vehicle_id = "Unknown"
                 lat = vehicle_data.position.latitude
                 lon = vehicle_data.position.longitude
                 timestamp = vehicle_data.timestamp
@@ -44,6 +48,7 @@ def on_message(client, userdata, msg):
                     # Append flat dictionary to memory buffer
                     memory_buffer.append({
                         'route_id': route_id,
+                        'vehicle_id': vehicle_id,
                         'lat': lat,
                         'lon': lon,
                         'ts': timestamp
