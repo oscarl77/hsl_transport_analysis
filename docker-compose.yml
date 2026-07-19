@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Service 1: The Database Engine
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: local_postgres_db
+    environment:
+      POSTGRES_USER: transit_user
+      POSTGRES_PASSWORD: secret_password
+      POSTGRES_DB: transit_analytics
+    ports:
+      - "5432:5432" # Exposes port to your local host machine if you want to connect via DBeaver/pgAdmin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transit_user -d transit_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Service 2: Background Ingestion Worker
+  transit-pipeline:
+    build: .
+    container_name: local_transit_pipeline
+    command: python run_pipeline.py
+    environment:
+      - DATABASE_URL=postgresql://transit_user:secret_password@postgres-db:5432/transit_analytics
+      - API_KEY=${DIGITRANSIT_API_KEY} # Injected from your local shell or .env file
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # Service 3: Streamlit Interface Dashboard
+  transit-app:
+    build: .
+    container_name: local_transit_dashboard
+    command: streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501" # Maps Streamlit browser UI to http://localhost:8501
+    environment:
+      - DATABASE_URL=postgresql://transit_user:secret_password@postgres-db:5432/transit_analytics
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
