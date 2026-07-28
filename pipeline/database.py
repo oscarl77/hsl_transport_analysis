@@ -3,6 +3,7 @@ import psycopg2
 import logging
 from psycopg2.extras import execute_values
 
+
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:

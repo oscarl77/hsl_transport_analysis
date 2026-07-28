@@ -1,6 +1,5 @@
 import json
 import sys
-from turtle import heading, speed
 from google.transit import gtfs_realtime_pb2
 
 # In-memory accumulator for batched writes
@@ -74,8 +73,8 @@ def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
                         "event_type": str(event_type).lower(),
                         "stop_id": str(body.get("stop")) if body.get("stop") else None,
                         "delay_seconds": body.get("dl"),  # Schedule delay (positive = late, negative = early)
-                        "speed": float(speed) if speed is not None else None,
-                        "heading": int(heading) if heading is not None else None
+                        "speed": body.get("spd"),  # Speed in m/s
+                        "heading": body.get("hdg"),  # Heading in degrees
                     })
 
         return records
