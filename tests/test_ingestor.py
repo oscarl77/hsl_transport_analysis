@@ -1,6 +1,6 @@
 import pytest
 from google.transit import gtfs_realtime_pb2
-from pipeline.ingestor import parse_feed_message
+from pipeline.mqtt_ingestor import parse_gtfs_realtime
 
 def _create_base_feed() -> gtfs_realtime_pb2.FeedMessage:
     """Helper to initialize a valid base FeedMessage with required headers."""
@@ -27,7 +27,7 @@ def test_parse_feed_message_happy_path():
     # Serialize to raw bytes (mimicking the MQTT payload)
     payload_bytes = feed.SerializeToString()
     # Act: Run through the pure parsing function
-    result = parse_feed_message(payload_bytes)
+    result = parse_gtfs_realtime(payload_bytes)
     # Assert: Verify the extracted structure
     assert len(result) == 1
     record = result[0]
@@ -49,7 +49,7 @@ def test_parse_feed_message_missing_optional_fields():
     vehicle.position.longitude = 23.7610
     vehicle.timestamp = 1720720800
     payload_bytes = feed.SerializeToString()
-    result = parse_feed_message(payload_bytes)
+    result = parse_gtfs_realtime(payload_bytes)
     assert len(result) == 1
     assert result[0]["route_id"] == "Unknown"
     assert result[0]["vehicle_id"] == "Unknown"
@@ -65,7 +65,7 @@ def test_parse_feed_message_filters_missing_gps():
     vehicle.trip.route_id = "10M"
     vehicle.timestamp = 1720720800
     payload_bytes = feed.SerializeToString()
-    result = parse_feed_message(payload_bytes)
+    result = parse_gtfs_realtime(payload_bytes)
     # Should be dropped because lat/lon evaluate to 0.0 or None
     assert len(result) == 0
 
@@ -74,10 +74,10 @@ def test_parse_feed_message_corrupted_bytes():
     """Verify corrupted network packets return an empty list instead of crashing."""
     garbage_bytes = b"invalid_protobuf_data_stream_12345"
     # Act & Assert: Function should internally catch the exception and exit cleanly
-    result = parse_feed_message(garbage_bytes)
+    result = parse_gtfs_realtime(garbage_bytes)
     assert result == []
 
 
 def test_parse_feed_message_empty_payload():
     """Verify empty byte triggers exit early without parsing."""
-    assert parse_feed_message(b"") == []
+    assert parse_gtfs_realtime(b"") == []

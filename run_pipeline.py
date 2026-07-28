@@ -4,7 +4,8 @@ from pipeline import config
 from paho.mqtt import client as mqtt_client
 
 from pipeline.database import DatabaseManager
-from pipeline.ingestor import BATCH_LIMIT, memory_buffer, parse_feed_message
+from pipeline.gtfs_ingestor import fetch_and_load_gtfs_static
+from pipeline.mqtt_ingestor import BATCH_LIMIT, memory_buffer, parse_gtfs_realtime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     if reason_code == 0:
         logger.info("Successfully connected to MQTT Broker!")
         # Subscribe inside on_connect for self-healing subscriptions
-        client.subscribe(config.TRAM_TOPIC)
+        client.subscribe(config.TRAM_VP_TOPIC)
         logger.info(f"Subscribed to topic: {config.TRAM_TOPIC}")
     else:
         logger.error(f"Failed to connect to MQTT broker, reason code: {reason_code}")
@@ -37,7 +38,7 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
 def on_mqtt_message(client, userdata, msg):
     """Event handler triggered whenever an MQTT message arrives over the socket."""
     # Parse raw protobuf payload
-    records = parse_feed_message(msg.payload)
+    records = parse_gtfs_realtime(msg.payload)
     memory_buffer.extend(records)
     # Flush buffer using the single db_manager instance
     if len(memory_buffer) >= BATCH_LIMIT:
@@ -50,6 +51,8 @@ def on_mqtt_message(client, userdata, msg):
 
 def start_pipeline():
     """Boots database management checks and starts the blocking MQTT network loop."""
+    # Fetch latest static GTFS stops and routes
+    fetch_and_load_gtfs_static()
     # Initialise database schema & run rolling retention pruning
     db_manager.initialise_db()
     db_manager.delete_old_telemetry(days=7)

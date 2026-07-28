@@ -29,4 +29,4 @@ if not API_KEY:
 # Target Subscription: GTFS-RT Realtime Vehicle Positions (vp) for HSL Trams
 # The '+' acts as an open wildcard for agency/direction tags.
 # The '#' captures everything downstream from the TRAM category.
-TRAM_TOPIC = "/gtfsrt/vp/tampere/+/+/TRAM/#"
+TRAM_VP_TOPIC = "/gtfsrt/vp/tampere/+/+/TRAM/#"

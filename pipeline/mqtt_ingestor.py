@@ -5,7 +5,7 @@ from google.transit import gtfs_realtime_pb2
 BATCH_LIMIT = 50
 memory_buffer = []
 
-def parse_feed_message(payload_bytes: bytes) -> list[dict]:
+def parse_gtfs_realtime(payload_bytes: bytes) -> list[dict]:
     """Parses GTFS-RT protobuf payload bytes into structured record dicts."""
     try:
         feed = gtfs_realtime_pb2.FeedMessage()
