@@ -23,10 +23,10 @@ services:
   transit-pipeline:
     build: .
     container_name: local_transit_pipeline
-    command: python run_pipeline.py
+    command: python start_pipeline.py
     environment:
       - DATABASE_URL=postgresql://transit_user:secret_password@postgres-db:5432/transit_analytics
-      - API_KEY=${DIGITRANSIT_API_KEY} # Injected from your local shell or .env file
+      - API_KEY=${DIGITRANSIT_API_KEY}
     depends_on:
       postgres-db:
         condition: service_healthy
