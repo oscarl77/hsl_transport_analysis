@@ -107,3 +107,20 @@ class DatabaseManager:
                     self.conn.rollback()
                 logger.error(f"Unexpected error during batch insert: {e}")
                 raise e
+
+    def delete_old_telemetry(self, days: int = 7):
+        """Delete telemetry records older than a specified number of days"""
+        cutoff_timestamp = int(time.time()) - days * 24 * 60 * 60
+        delete_query = "DELETE FROM tram_telemetry WHERE timestamp < %s;"
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute(delete_query, (cutoff_timestamp,))
+                deleted_count = cursor.rowcount
+            self.conn.commit()    
+            logger.info(f"Cleaned up {deleted_count} old telemetry records older than {days} days.")
+            return deleted_count
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Error during old telemetry cleanup: {e}")
+            return 0
+            
