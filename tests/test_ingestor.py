@@ -1,6 +1,7 @@
 import pytest
+import json
 from google.transit import gtfs_realtime_pb2
-from pipeline.mqtt_ingestor import parse_gtfs_realtime
+from pipeline.mqtt_ingestor import parse_gtfs_realtime, parse_hfp_json
 
 def _create_base_feed() -> gtfs_realtime_pb2.FeedMessage:
     """Helper to initialize a valid base FeedMessage with required headers."""
@@ -81,3 +82,50 @@ def test_parse_feed_message_corrupted_bytes():
 def test_parse_feed_message_empty_payload():
     """Verify empty byte triggers exit early without parsing."""
     assert parse_gtfs_realtime(b"") == []
+
+def test_parse_hfp_json_arr_event_success():
+    """Verify valid HFP ARR payload is parsed into normalised dictionary."""
+    sample_hfp_payload = {
+        "arr": {
+            "desi": "3",
+            "veh": 105,
+            "lat": 61.498,
+            "long": 23.761,
+            "tsi": 1720720800,
+            "stop": 1204
+        }
+    }
+    payload_bytes = json.dumps(sample_hfp_payload).encode("utf-8")
+
+    result = parse_hfp_json(payload_bytes)
+
+    assert len(result) == 1
+    record = result[0]
+    assert record["route_id"] == "3"
+    assert record["vehicle_id"] == "105"
+    assert record["event_type"] == "arr"
+    assert record["stop_id"] == "1204"
+
+
+def test_parse_hfp_json_ignores_non_stop_events():
+    """Verify events outside the stop lifecycle (e.g. VP) are dropped."""
+    sample_vp_payload = {
+        "VP": {
+            "desi": "3",
+            "veh": 105,
+            "lat": 61.498,
+            "long": 23.761,
+            "tsi": 1720720800
+        }
+    }
+    payload_bytes = json.dumps(sample_vp_payload).encode("utf-8")
+
+    result = parse_hfp_json(payload_bytes)
+    assert result == []
+
+
+def test_parse_hfp_json_corrupted_bytes():
+    """Verify malformed JSON fails gracefully without crashing."""
+    invalid_bytes = b"not_valid_json_data"
+    result = parse_hfp_json(invalid_bytes)
+    assert result == []
