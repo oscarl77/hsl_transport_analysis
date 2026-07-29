@@ -57,11 +57,7 @@ map_slot = st.empty()
 st.divider()
 
 # --- 5. ANALYTICAL TABS (Static Workspace Below Map) ---
-tab_trends, tab_routes = st.tabs(["📉 3-Hour Delay Trends", "📊 Route Delay Breakdown"])
-
-with tab_trends:
-    st.subheader("Network-Wide Average Delay (5-Minute Buckets)")
-    trends_slot = st.empty()
+tab_routes = st.tabs(["📊 Route Delay Breakdown"])
 
 with tab_routes:
     st.subheader("Current Delay & Active Fleet Metrics by Route")
@@ -124,15 +120,6 @@ def render_live_fleet_view():
 # --- 8. SLOW ANALYTICS FRAGMENT (Runs Every 30 Seconds) ---
 @st.fragment(run_every=30)
 def render_analytics_views():
-    # A. Render Historical Trends Chart
-    trends_df = queries.fetch_network_delay_trends(engine)
-    if not trends_df.empty:
-        with trends_slot:
-            st.line_chart(
-                trends_df.set_index("time_bucket")["avg_delay_sec"],
-                y_label="Average Delay (Seconds)",
-            )
-
     # B. Render Route Performance Table
     route_df = queries.fetch_route_delay_breakdown(engine)
     if not route_df.empty:
