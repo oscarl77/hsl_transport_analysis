@@ -24,7 +24,7 @@ def reset_daily_tables(db_url: str) -> None:
         raise
 
 if __name__ == "__main__":
-    db_url = os.getenv(config.API_KEY)
+    db_url = config.DATABASE_URL
     if not db_url:
         logger.error("DATABASE_URL environment variable is not set.")
         raise ValueError("DATABASE_URL missing.")
