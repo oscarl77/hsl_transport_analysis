@@ -32,6 +32,9 @@ class DatabaseManager:
         CREATE INDEX IF NOT EXISTS idx_vehicle_ts 
         ON tram_telemetry (vehicle_id, timestamp DESC);
 
+        CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp
+        ON tram_telemetry (timestamp DESC);
+
 
         -- 2. Low-frequency stop lifecycle milestones (HFP: ARR, DEP, PAS)
         CREATE TABLE IF NOT EXISTS tram_stop_events (
