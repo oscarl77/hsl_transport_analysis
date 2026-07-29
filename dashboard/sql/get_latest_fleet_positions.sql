@@ -7,4 +7,5 @@ SELECT DISTINCT ON (vehicle_id)
     speed,
     timestamp
 FROM tram_telemetry
+WHERE timestamp >= (SELECT MAX(timestamp) FROM tram_telemetry) - INTERVAL '3 minute'
 ORDER BY vehicle_id, timestamp DESC;
