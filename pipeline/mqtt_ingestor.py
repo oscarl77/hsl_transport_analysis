@@ -3,7 +3,7 @@ import sys
 from google.transit import gtfs_realtime_pb2
 
 # In-memory accumulator for batched writes
-BATCH_LIMIT = 50
+BATCH_LIMIT = 500
 memory_buffer = []
 
 def parse_gtfs_realtime(payload_bytes: bytes) -> list[dict]:
