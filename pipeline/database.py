@@ -25,7 +25,7 @@ class DatabaseManager:
             delay_seconds INTEGER,              -- Schedule offset in seconds (+ ahead, - behind)
             speed DOUBLE PRECISION,             -- Speed in m/s
             heading INTEGER,                    -- Heading in degrees (0-360)
-            timestamp BIGINT NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -44,7 +44,7 @@ class DatabaseManager:
             event_type VARCHAR(10) NOT NULL,    -- 'arr', 'dep', or 'pas'
             stop_id VARCHAR(50),                -- Stop ID (nullable for edge-case pass events)
             delay_seconds INTEGER,              -- Schedule delay recorded at milestone
-            timestamp BIGINT NOT NULL,
+            timestamp TIMESTAMPTZ NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
 
