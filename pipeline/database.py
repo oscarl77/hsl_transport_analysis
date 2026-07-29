@@ -27,7 +27,7 @@ class DatabaseManager:
             heading INTEGER,                    -- Heading in degrees (0-360)
             timestamp BIGINT NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
+        )
 
         -- Index for fast DISTINCT ON (vehicle_id) queries on the map dashboard
         CREATE INDEX IF NOT EXISTS idx_vehicle_ts 
