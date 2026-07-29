@@ -78,6 +78,7 @@ def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
                     "vehicle_id": str(body.get("veh", "Unknown")),
                     "latitude": float(lat),
                     "longitude": float(lon),
+                    "event_tyoe": event_type,
                     "delay_seconds": body.get("dl"),
                     "timestamp": body.get("tst") or body.get("tsi"),
                 }
@@ -87,7 +88,6 @@ def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
                     record["speed"] = body.get("spd")
                     record["heading"] = body.get("hdg")
                 else:  # arr, dep, pas
-                    record["event_type"] = event_type
                     record["stop_id"] = (
                         str(body.get("stop"))
                         if body.get("stop") is not None
