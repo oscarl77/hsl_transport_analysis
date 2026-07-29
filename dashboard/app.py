@@ -118,7 +118,7 @@ def render_live_fleet_view():
     )
 
     with map_slot:
-        st.pydeck_chart(deck, key="live_tram_map", width='stretcj')
+        st.pydeck_chart(deck, key="live_tram_map", width='stretch')
 
 
 # --- 8. SLOW ANALYTICS FRAGMENT (Runs Every 30 Seconds) ---
