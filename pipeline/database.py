@@ -169,6 +169,11 @@ class DatabaseManager:
                 logger.error(
                     f"Connection lost during write to {table_name}: {e}. Retrying..."
                 )
+                if self.conn:
+                    try:
+                        self.conn.rollback()
+                    except Exception:
+                        pass
                 self._connect()
             except Exception as e:
                 if self.conn:
