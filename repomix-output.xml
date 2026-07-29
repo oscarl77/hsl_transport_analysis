@@ -1,0 +1,999 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    test.yml
+analytics/
+  profile_delays.py
+app/
+  dashboard.py
+pipeline/
+  config.py
+  database.py
+  ingestor.py
+tests/
+  __init__.py
+  test_database.py
+  test_ingestor.py
+.gitignore
+docker-compose.yml
+Dockerfile
+entrypoint.sh
+fly.toml
+requirements.txt
+run_pipeline.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="analytics/profile_delays.py">
+import duckdb
+import polars as pl
+from pipeline import config
+
+def run_live_profile():
+    print(f"Connecting to live database storage at: {config.DB_PATH}")
+    
+    # Connect to the active file using a DuckDB read-only pointer
+    # This ensures we don't block or lock the ingestion script's insert statements.
+    conn = duckdb.connect(str(config.DB_PATH), read_only=True)
+    
+    try:
+        # 2. Let DuckDB run the aggregation query.
+        # .pl() tells DuckDB to instantly convert the result into a Polars DataFrame.
+        df = conn.sql("""
+            SELECT 
+                route_id,
+                COUNT(*) as total_pings,
+                MIN(captured_at) as tracking_started,
+                MAX(captured_at) as last_updated
+            FROM tram_telemetry
+            GROUP BY route_id
+            ORDER BY total_pings DESC;
+        """).pl()  # <-- The magic bridge string
+        
+        print("\n--- LIVE FLEET PROFILE SUMMARY ---")
+        print(df)
+        
+    except Exception as e:
+        print(f"Database query failed: {e}")
+    finally:
+        # Always close the connection pointer
+        conn.close()
+
+if __name__ == "__main__":
+    try:
+        run_live_profile()
+    except Exception as e:
+        print(f"Analytics execution failed: {e}")
+</file>
+
+<file path="tests/__init__.py">
+
+</file>
+
+<file path="entrypoint.sh">
+#!/bin/bash
+
+python run_pipeline.py &
+
+streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+</file>
+
+<file path="fly.toml">
+app = "hsl-transport-worker" # Change this to a unique name
+primary_region = "hel" # Helsinki data center for ultra-low latency!
+
+[build]
+  dockerfile = "Dockerfile"
+
+# This block tells the cloud host to plug our persistent virtual drive 
+# straight into the /app/data folder we created inside our Dockerfile
+[[mounts]]
+  source = "transit_storage"
+  destination = "/app/data"
+
+# Because this is a background ingestion worker that doesn't need to serve public HTTP traffic,
+# we strip out all standard web server proxy rules to maximize computing efficiency.
+[env]
+  DB_PATH = "/app/data/transit_analytics.db"
+</file>
+
+<file path="pipeline/config.py">
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DB_PATH = BASE_DIR / "data" / "transit_analytics.db"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql://postgres:password@localhost:5432/transit_db" # Fallback for local dev
+)
+
+# Ensure directories exist
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+# Digitransit MQTT Settings
+MQTT_BROKER = "mqtt.digitransit.fi"
+MQTT_PORT = 1883  # Standard TCP unencrypted port
+MQTT_KEEPALIVE = 30  # Recommended interval under 1 minute
+
+# API Credentials
+API_KEY = os.getenv("DIGITRANSIT_API_KEY")
+
+if not API_KEY:
+    raise ValueError("CRITICAL: DIGITRANSIT_API_KEY is not set in your .env file!")
+
+# Target Subscription: GTFS-RT Realtime Vehicle Positions (vp) for HSL Trams
+# The '+' acts as an open wildcard for agency/direction tags.
+# The '#' captures everything downstream from the TRAM category.
+TRAM_TOPIC = "/gtfsrt/vp/tampere/+/+/TRAM/#"
+</file>
+
+<file path=".gitignore">
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+### Python Patch ###
+# Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
+poetry.toml
+
+# ruff
+.ruff_cache/
+
+# LSP config files
+pyrightconfig.json
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+data/*.db
+data/*.db.wal
+*.db
+</file>
+
+<file path="Dockerfile">
+# Official, lightweight Python base image optimized for production
+FROM python:3.11-slim
+
+# Set system environment variables
+# PYTHONUNBUFFERED=1 forces logs to stream directly to the cloud terminal instantly
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Create and set the working directory inside the container
+WORKDIR /app
+
+# Install system dependencies needed for compiling certain wheel libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker's smart caching layer
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the source code packages into the application zone
+COPY . .
+
+# Create an explicit directory mount point for our persistent database volume
+RUN mkdir -p /app/data
+
+# 8. Define the container's boot command execution string
+CMD ["python", "run_pipeline.py"]
+</file>
+
+<file path=".github/workflows/test.yml">
+name: Run Test Suite
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest  # Automated test runner
+
+      - name: Run Pytest Suite
+        env:
+            DIGITRANSIT_API_KEY: "mock_key_for_ci_testing_only"
+        run: |
+          # Executes any test files sitting in a tests/ folder
+          pytest
+</file>
+
+<file path="tests/test_ingestor.py">
+import pytest
+from google.transit import gtfs_realtime_pb2
+from pipeline.ingestor import parse_feed_message
+
+def _create_base_feed() -> gtfs_realtime_pb2.FeedMessage:
+    """Helper to initialize a valid base FeedMessage with required headers."""
+    feed = gtfs_realtime_pb2.FeedMessage()
+    feed.header.gtfs_realtime_version = "2.0"
+    feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET
+    feed.header.timestamp = 1720720800
+    return feed
+
+def test_parse_feed_message_happy_path():
+    """Verify valid GTFS-RT protobuf bytes are parsed into schema-aligned dicts."""
+    # Arrange: Build a real GTFS protobuf message in memory
+    feed = _create_base_feed()
+    header = feed.header
+    header.gtfs_realtime_version = "2.0"
+    entity = feed.entity.add()
+    entity.id = "entity_1"
+    vehicle = entity.vehicle
+    vehicle.trip.route_id = "10M"
+    vehicle.vehicle.id = "TRAM_99"
+    vehicle.position.latitude = 61.4978
+    vehicle.position.longitude = 23.7610
+    vehicle.timestamp = 1720720800
+    # Serialize to raw bytes (mimicking the MQTT payload)
+    payload_bytes = feed.SerializeToString()
+    # Act: Run through the pure parsing function
+    result = parse_feed_message(payload_bytes)
+    # Assert: Verify the extracted structure
+    assert len(result) == 1
+    record = result[0]
+    assert record["route_id"] == "10M"
+    assert record["vehicle_id"] == "TRAM_99"
+    assert record["latitude"] == pytest.approx(61.4978)
+    assert record["longitude"] == pytest.approx(23.7610)
+    assert record["timestamp"] == 1720720800
+
+
+def test_parse_feed_message_missing_optional_fields():
+    """Verify default fallbacks ('Unknown') when route or vehicle IDs are missing."""
+    feed = _create_base_feed()
+    entity = feed.entity.add()
+    entity.id = "entity_2"
+    # Intentionally leaving out trip.route_id and vehicle.id
+    vehicle = entity.vehicle
+    vehicle.position.latitude = 61.4978
+    vehicle.position.longitude = 23.7610
+    vehicle.timestamp = 1720720800
+    payload_bytes = feed.SerializeToString()
+    result = parse_feed_message(payload_bytes)
+    assert len(result) == 1
+    assert result[0]["route_id"] == "Unknown"
+    assert result[0]["vehicle_id"] == "Unknown"
+
+
+def test_parse_feed_message_filters_missing_gps():
+    """Verify records missing latitude/longitude are skipped entirely."""
+    feed = _create_base_feed()
+    entity = feed.entity.add()
+    entity.id = "entity_3"
+    # Populating IDs but omitting GPS position configurations
+    vehicle = entity.vehicle
+    vehicle.trip.route_id = "10M"
+    vehicle.timestamp = 1720720800
+    payload_bytes = feed.SerializeToString()
+    result = parse_feed_message(payload_bytes)
+    # Should be dropped because lat/lon evaluate to 0.0 or None
+    assert len(result) == 0
+
+
+def test_parse_feed_message_corrupted_bytes():
+    """Verify corrupted network packets return an empty list instead of crashing."""
+    garbage_bytes = b"invalid_protobuf_data_stream_12345"
+    # Act & Assert: Function should internally catch the exception and exit cleanly
+    result = parse_feed_message(garbage_bytes)
+    assert result == []
+
+
+def test_parse_feed_message_empty_payload():
+    """Verify empty byte triggers exit early without parsing."""
+    assert parse_feed_message(b"") == []
+</file>
+
+<file path="tests/test_database.py">
+from unittest.mock import MagicMock, patch
+import pytest
+from pipeline.database import DatabaseManager
+
+
+@patch("pipeline.database.psycopg2.connect")
+@patch("pipeline.database.execute_values")
+def test_database_batch_insertion(mock_execute_values, mock_connect):
+    """Verify insert_batch formats records and executes bulk insert correctly."""
+    # Arrange: Set up mock database connection & cursor
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    # Mock psycopg2.connect to return mock connection handle
+    mock_connect.return_value = mock_conn
+    mock_conn.closed = 0
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    # Initialize manager with dummy URL
+    manager = DatabaseManager("postgresql://mock:mock@localhost/mock_db")
+    # Mock payload matching keys from process_feed_message (lat, lon, ts)
+    mock_batch = [
+        {
+            "route_id": "1001",
+            "vehicle_id": "CAR_1",
+            "latitude": 60.1,
+            "longitude": 24.9,
+            "timestamp": 1720720800,
+        }
+    ]
+    # Act: Call method on class instance
+    manager.insert_batch(mock_batch)
+    # Assert: Verify execute_values parameters
+    mock_execute_values.assert_called_once()
+    call_args = mock_execute_values.call_args[0]
+    passed_cursor = call_args[0]
+    passed_query = call_args[1]
+    passed_values = call_args[2]
+    assert passed_cursor == mock_cursor
+    assert "INSERT INTO tram_telemetry" in passed_query
+    assert passed_values == [
+        ("1001", "CAR_1", 60.1, 24.9, 1720720800)
+    ]
+
+
+@patch("pipeline.database.psycopg2.connect")
+@patch("pipeline.database.execute_values")
+def test_insert_telemetry_batch_empty(mock_execute_values, mock_connect):
+    """Verify empty batches exit early without executing queries."""
+    manager = DatabaseManager("postgresql://mock:mock@localhost/mock_db")
+    # Reset mock after manager.__init__() call
+    mock_execute_values.reset_mock()
+    manager.insert_batch([])
+    # Should exit before running execute_values
+    mock_execute_values.assert_not_called()
+</file>
+
+<file path="requirements.txt">
+altair==6.2.2
+anyio==4.14.1
+attrs==26.1.0
+blinker==1.9.0
+cachetools==7.1.4
+certifi==2026.6.17
+charset-normalizer==3.4.7
+click==8.4.2
+dotenv==0.9.9
+gitdb==4.0.12
+GitPython==3.1.50
+gtfs-realtime-bindings==2.1.0
+h11==0.16.0
+httptools==0.8.0
+idna==3.18
+iniconfig==2.3.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+MarkupSafe==3.0.3
+narwhals==2.23.0
+numpy==2.4.6
+packaging==26.2
+paho-mqtt==2.1.0
+pandas==3.0.3
+pillow==12.3.0
+pluggy==1.6.0
+polars==1.42.1
+polars-runtime-32==1.42.1
+protobuf==7.35.1
+psycopg2-binary==2.9.12
+pyarrow==24.0.0
+pydeck==0.9.3
+Pygments==2.20.0
+pytest==9.1.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+python-multipart==0.0.32
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.6.3
+six==1.17.0
+smmap==5.0.3
+SQLAlchemy==2.0.51
+starlette==1.3.1
+streamlit==1.58.0
+tenacity==9.1.4
+toml==0.10.2
+typing_extensions==4.16.0
+urllib3==2.7.0
+uvicorn==0.50.0
+websockets==16.0
+</file>
+
+<file path="pipeline/ingestor.py">
+import sys
+from google.transit import gtfs_realtime_pb2
+
+# In-memory accumulator for batched writes
+BATCH_LIMIT = 50
+memory_buffer = []
+
+def parse_feed_message(payload_bytes: bytes) -> list[dict]:
+    """Parses GTFS-RT protobuf payload bytes into structured record dicts."""
+    try:
+        feed = gtfs_realtime_pb2.FeedMessage()
+        feed.ParseFromString(payload_bytes)
+
+        records = []
+        for entity in feed.entity:
+            if entity.HasField("vehicle"):
+                v = entity.vehicle
+                lat = v.position.latitude if v.HasField("position") else None
+                lon = v.position.longitude if v.HasField("position") else None
+
+                if lat and lon:
+                    records.append({
+                        "route_id": (
+                            v.trip.route_id
+                            if v.trip.HasField("route_id")
+                            else "Unknown"
+                        ),
+                        "vehicle_id": (
+                            v.vehicle.id
+                            if v.HasField("vehicle") and v.vehicle.HasField("id")
+                            else "Unknown"
+                        ),
+                        "latitude": lat,
+                        "longitude": lon,
+                        "timestamp": v.timestamp,
+                    })
+        return records
+    except Exception as e:
+        print(f"Protobuf Parsing Exception: {e}", file=sys.stderr)
+        return []
+</file>
+
+<file path="run_pipeline.py">
+import logging
+import sys
+from pipeline import config
+from paho.mqtt import client as mqtt_client
+
+from pipeline.database import DatabaseManager
+from pipeline.ingestor import BATCH_LIMIT, memory_buffer, parse_feed_message
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+db_manager = DatabaseManager(config.DATABASE_URL)
+
+def on_connect(client, userdata, flags, reason_code, properties=None):
+    """Triggers on initial connection AND automatic reconnections.
+    
+    Subscribing inside on_connect guarantees subscriptions are automatically 
+    renewed if the network socket drops and reconnects.
+    """
+    if reason_code == 0:
+        logger.info("Successfully connected to MQTT Broker!")
+        # Subscribe inside on_connect for self-healing subscriptions
+        client.subscribe(config.TRAM_TOPIC)
+        logger.info(f"Subscribed to topic: {config.TRAM_TOPIC}")
+    else:
+        logger.error(f"Failed to connect to MQTT broker, reason code: {reason_code}")
+
+
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
+    """Triggers whenever the network socket drops unexpectedly."""
+    if reason_code != 0:
+        logger.warning(
+            f"Unexpected MQTT disconnect (code {reason_code}). Paho will auto-reconnect..."
+        )
+
+
+def on_mqtt_message(client, userdata, msg):
+    """Event handler triggered whenever an MQTT message arrives over the socket."""
+    # Parse raw protobuf payload
+    records = parse_feed_message(msg.payload)
+    memory_buffer.extend(records)
+    # Flush buffer using the single db_manager instance
+    if len(memory_buffer) >= BATCH_LIMIT:
+        db_manager.insert_batch(memory_buffer)
+        logger.info(
+            f"[PIPELINE STAGE] Committed {len(memory_buffer)} records to PostgreSQL."
+        )
+        memory_buffer.clear()
+
+
+def start_pipeline():
+    """Boots database management checks and starts the blocking MQTT network loop."""
+    # Initialise database schema & run rolling retention pruning
+    db_manager.initialise_db()
+    db_manager.delete_old_telemetry(days=7)
+    # Instantiate Paho Client using API Version 2
+    client = mqtt_client.Client(
+        callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2,
+        client_id="helsinki_tram_analytics_mvp",
+    )
+    # Configure auth if API key is provided
+    if config.API_KEY:
+        client.username_pw_set(username=config.API_KEY, password="")
+    # Bind callbacks
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_mqtt_message
+    # Reconnection behavior: Exponential backoff (1s up to 2m max delay)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+    logger.info(f"Initiating network link to {config.MQTT_BROKER}:{config.MQTT_PORT}...")
+    try:
+        client.connect(
+            config.MQTT_BROKER,
+            port=config.MQTT_PORT,
+            keepalive=config.MQTT_KEEPALIVE,
+        )
+        # Blocking call: Handles network IO, reconnects, and dispatches callbacks
+        client.loop_forever()
+    except KeyboardInterrupt:
+        logger.info("Stopping pipeline worker cleanly...")
+        client.disconnect()
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    start_pipeline()
+</file>
+
+<file path="app/dashboard.py">
+import time
+import pandas as pd
+import pydeck as pdk
+from sqlalchemy import create_engine
+import streamlit as st
+
+import sys
+from pathlib import Path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+from pipeline.config import DATABASE_URL
+
+# Page Configuration
+st.set_page_config(page_title="Live Transit Tracker", layout="wide")
+st.title("Real-Time Fleet Tracking Dashboard")
+
+# Cached Connection Engine
+@st.cache_resource
+def get_db_engine():
+    return create_engine(DATABASE_URL)
+
+engine = get_db_engine()
+
+# This ensures it is only created ONCE when the browser tab boots up,
+# and is never overwritten when new tram coordinates stream in.
+if "map_view" not in st.session_state:
+    st.session_state.map_view = pdk.ViewState(
+        latitude=61.4978,   # Default center latitude
+        longitude=23.7610,  # Default center longitude
+        zoom=12,
+        pitch=0,
+        bearing=0
+    )
+
+# Setup an auto-refresh container loop
+refresh_rate = st.sidebar.slider("Refresh Rate (seconds)", 1, 10, 3)
+
+# Placeholders for layout metrics and map canvas
+metrics_placeholder = st.empty()
+map_placeholder = st.empty()
+
+while True:
+    # Query PostgreSQL using window function
+    query = """
+        WITH latest_positions AS (
+            SELECT
+                route_id,
+                vehicle_id,
+                latitude,
+                longitude,
+                timestamp,
+                ROW_NUMBER() OVER(PARTITION BY vehicle_id ORDER BY timestamp DESC) as rn
+            FROM tram_telemetry
+        )
+        SELECT route_id, vehicle_id, latitude, longitude, timestamp
+        FROM latest_positions
+        WHERE rn = 1;
+    """
+
+    df = pd.read_sql(query, con=engine)
+        
+    # Update the Dashboard Visual Elements
+    if not df.empty:
+        # Update metrics box
+        with metrics_placeholder.container():
+            st.metric(label="Active Fleet Count", value=len(df))
+            
+        # Build Geospatial Mapping Layer (PyDeck)
+        # We define a ScatterplotLayer to draw circles at the latitude/longitude points
+        view_state = pdk.ViewState(
+            latitude=df["latitude"].mean(),
+            longitude=df["longitude"].mean(),
+            zoom=12,
+            pitch=0
+        )
+        
+        layer = pdk.Layer(
+            "ScatterplotLayer",
+            df,
+            get_position="[longitude, latitude]",
+            get_color="[59, 202, 46, 255]",
+            get_radius=80,
+            pickable=True
+        )
+        
+        # Render using stateful view container variable
+        with map_placeholder.container():
+            st.pydeck_chart(pdk.Deck(
+                layers=[layer], 
+                # Passing the session_state object blocks the engine from resetting coordinates
+                initial_view_state=st.session_state.map_view,
+                tooltip={"text": "Route: {route_id} | Car ID: {vehicle_id}"}
+            ))
+
+    # Sleep until the next refresh pulse
+    time.sleep(refresh_rate)
+</file>
+
+<file path="pipeline/database.py">
+import time
+import psycopg2
+import logging
+from psycopg2.extras import execute_values
+from pipeline.config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
+
+class DatabaseManager:
+    def __init__(self, db_url: str):
+        self.db_url = db_url
+        self.conn = None
+        self._connect()
+    
+    def initialise_db(self):
+        """Creates table schema and optimized composite indexes if they do not exist."""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS tram_telemetry (
+            id SERIAL PRIMARY KEY,
+            route_id VARCHAR(50),
+            vehicle_id VARCHAR(50) NOT NULL,
+            latitude DOUBLE PRECISION NOT NULL,
+            longitude DOUBLE PRECISION NOT NULL,
+            timestamp BIGINT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Composite index targeting latest-position window queries
+        CREATE INDEX IF NOT EXISTS idx_vehicle_ts 
+        ON tram_telemetry (vehicle_id, timestamp DESC);
+        """
+
+        for attempt in range(2):
+            try:
+                # Reconnect handle if socket was broken
+                if not self.conn or self.conn.closed != 0:
+                    self._connect()
+
+                with self.conn.cursor() as cursor:
+                    cursor.execute(create_table_query)
+                self.conn.commit()
+                logger.info("Database schema and indexes initialized successfully.")
+                return
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                logger.error(f"Failed to initialize database schema: {e}. Retrying connection...")
+                self._connect()
+            except Exception as e:
+                if self.conn:
+                    self.conn.rollback()
+                logger.error(f"Error during database schema initialization: {e}")
+                raise e
+
+    def _connect(self):
+        """Establishes or restores the persistent database connection
+        """
+        attempt = 0
+        backoff = 1.0 # Initial backoff in seconds
+
+        while True:
+            try:
+                if self.conn and not self.conn.closed:
+                    self.conn.close()
+                self.conn = psycopg2.connect(self.db_url)
+                logger.info("Database connection established successfully.")
+                return
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                attempt += 1
+                logger.warning(f"Database connection failed (Attempt {attempt}). Retrying in {backoff:.1f} seconds...   Error: {e}")
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 30.0)  # Exponential backoff with a cap at 30 seconds
+
+    def insert_batch(self, records: list[dict]):
+        """Inserts a batch of telemetry records into the database."""
+        if not records:
+            return
+
+        values = [
+            (
+                r.get("route_id"),
+                r.get("vehicle_id"),
+                r.get("latitude"),
+                r.get("longitude"),
+                r.get("timestamp")
+            )
+            for r in records
+        ]
+
+        query = """
+            INSERT INTO tram_telemetry (route_id, vehicle_id, latitude, longitude, timestamp)
+            VALUES %s;
+        """
+
+        # Retry loop for write batch
+        for _ in range(2):
+            try:
+                if not self.conn or self.conn.closed != 0:
+                    self._connect()
+                with self.conn.cursor() as cursor:
+                    execute_values(cursor, query, values)
+                self.conn.commit()
+                return  # Successful insertion, exit the method
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                logger.error(f"Write operation failed: {e}. Attempting to reconnect...")
+                self._connect()
+            except Exception as e:
+                if self.conn:
+                    self.conn.rollback()
+                logger.error(f"Unexpected error during batch insert: {e}")
+                raise e
+
+    def delete_old_telemetry(self, days: int = 7):
+        """Delete telemetry records older than a specified number of days"""
+        cutoff_timestamp = int(time.time()) - days * 24 * 60 * 60
+        delete_query = "DELETE FROM tram_telemetry WHERE timestamp < %s;"
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute(delete_query, (cutoff_timestamp,))
+                deleted_count = cursor.rowcount
+            self.conn.commit()    
+            logger.info(f"Cleaned up {deleted_count} old telemetry records older than {days} days.")
+            return deleted_count
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Error during old telemetry cleanup: {e}")
+            return 0
+</file>
+
+</files>

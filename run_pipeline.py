@@ -1,10 +1,11 @@
 import logging
 import sys
+import uuid
 from pipeline import config
 from paho.mqtt import client as mqtt_client
 
 from pipeline.database import DatabaseManager
-from pipeline.ingestor import BATCH_LIMIT, memory_buffer, parse_feed_message
+from pipeline.mqtt_ingestor import BATCH_LIMIT, memory_buffer, parse_gtfs_realtime, parse_hfp_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,12 +19,12 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     renewed if the network socket drops and reconnects.
     """
     if reason_code == 0:
-        logger.info("Successfully connected to MQTT Broker!")
-        # Subscribe inside on_connect for self-healing subscriptions
-        client.subscribe(config.TRAM_TOPIC)
-        logger.info(f"Subscribed to topic: {config.TRAM_TOPIC}")
+        logger.info("Connected to HSL MQTT broker successfully.")
+        for topic in config.HFP_TOPICS:
+            client.subscribe(topic)
+            logger.info(f"Subscribed to topic: {topic}")
     else:
-        logger.error(f"Failed to connect to MQTT broker, reason code: {reason_code}")
+        logger.error(f"Failed to connect to MQTT broker, return code {reason_code}")
 
 
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=None):
@@ -35,28 +36,49 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties=No
 
 
 def on_mqtt_message(client, userdata, msg):
-    """Event handler triggered whenever an MQTT message arrives over the socket."""
-    # Parse raw protobuf payload
-    records = parse_feed_message(msg.payload)
-    memory_buffer.extend(records)
-    # Flush buffer using the single db_manager instance
-    if len(memory_buffer) >= BATCH_LIMIT:
-        db_manager.insert_batch(memory_buffer)
-        logger.info(
-            f"[PIPELINE STAGE] Committed {len(memory_buffer)} records to PostgreSQL."
+    """Processes incoming HSL HFP MQTT messages and routes them to PostgreSQL."""
+    try:
+        # Parse raw payload bytes into structured dictionaries
+        records = parse_hfp_json(msg.payload)
+        if not records:
+            return
+
+        # Separate VP (position updates) from Stop Events (ARR, DEP, PAS)
+        vp_records = [r for r in records if r["event_type"] == "vp"]
+        stop_records = [
+            r for r in records if r["event_type"] in ("arr", "dep", "pas")
+        ]
+
+        # Process position pings via memory buffer to batch database writes
+        if vp_records:
+            memory_buffer.extend(vp_records)
+            if len(memory_buffer) >= BATCH_LIMIT:
+                db_manager.insert_telemetry_batch(memory_buffer)
+                memory_buffer.clear()
+
+        # Insert stop lifecycle events immediately
+        if stop_records:
+            db_manager.insert_stop_events(stop_records)
+            logger.info(
+                f"[HFP MILESTONE] Logged {len(stop_records)} stop event(s) to database."
+            )
+
+    except Exception as e:
+        logger.error(
+            f"Error processing MQTT message on topic {msg.topic}: {e}"
         )
-        memory_buffer.clear()
 
 
 def start_pipeline():
     """Boots database management checks and starts the blocking MQTT network loop."""
     # Initialise database schema & run rolling retention pruning
     db_manager.initialise_db()
-    db_manager.delete_old_telemetry(days=7)
     # Instantiate Paho Client using API Version 2
+    unique_client_id = f"hsl_tram_pipeline_{uuid.uuid4().hex[:8]}"
     client = mqtt_client.Client(
         callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2,
-        client_id="helsinki_tram_analytics_mvp",
+        client_id=unique_client_id,
+        clean_session=True
     )
     # Configure auth if API key is provided
     if config.API_KEY:

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Service 1: The Database Engine
   postgres-db:
@@ -10,7 +8,7 @@ services:
       POSTGRES_PASSWORD: secret_password
       POSTGRES_DB: transit_analytics
     ports:
-      - "5432:5432" # Exposes port to your local host machine if you want to connect via DBeaver/pgAdmin
+      - "5433:5432" # Exposes port to your local host machine if you want to connect via DBeaver/pgAdmin
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +21,7 @@ services:
   transit-pipeline:
     build: .
     container_name: local_transit_pipeline
-    command: python start_pipeline.py
+    command: python run_pipeline.py
     environment:
       - DATABASE_URL=postgresql://transit_user:secret_password@postgres-db:5432/transit_analytics
       - API_KEY=${DIGITRANSIT_API_KEY}
