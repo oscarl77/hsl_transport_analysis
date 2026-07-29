@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 
-def render_route_table(slot, route_df: pd.DataFrame) -> None:
+def render_route_table(route_df: pd.DataFrame) -> None:
     """Renders route delay metrics table into a persistent slot."""
     if route_df.empty:
-        slot.info("No active route analytics available.")
+        st.info("No active route analytics available.")
         return
 
-    with slot.container():
+    with st.container():
         st.dataframe(
             route_df,
             width="stretch",
