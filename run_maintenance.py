@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def reset_daily_tables(db_url: str) -> None:
     """Truncancates both telemetry and stop event tables, resetting ID sequences."""
-    query = "TRUNCATE TABLE tram_telemetry, tram_stop_events RESTART IDENTITY:"
+    query = "TRUNCATE TABLE tram_telemetry, tram_stop_events RESTART IDENTITY;"
 
     try:
         with psycopg2.connect(db_url) as conn:
