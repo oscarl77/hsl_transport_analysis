@@ -14,6 +14,16 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 from pipeline.config import DATABASE_URL
 
+st.html("""
+    <style>
+    /* Prevents PyDeck map container from fading/dimming during fragment ticks */
+    [data-testid="stDeckGlJsonChart"] {
+        opacity: 1 !important;
+        transition: none !important;
+    }
+    </style>
+""")
+
 st.set_page_config(
     page_title="Helsinki Transit Operations Hub",
     page_icon="🚌",
@@ -39,14 +49,15 @@ if "map_view" not in st.session_state:
 
 # Sidebar controls
 with st.sidebar:
-    st.header("🎛️ Control Panel")
-    refresh_rate = st.slider("Live Refresh Rate (seconds)", 1, 10, 3)
     
     st.divider()
     st.markdown("### Map Legend")
     st.markdown("🟢  **On-Time**")
     st.markdown("🟡  **Minor Delay**")
     st.markdown("🔴  **Major Delay**")
+
+    st.divider()
+    st.caption("⚡ Live Telemetry: Auto-refreshing every 3s")
 
 # Dashboard header
 st.title("🚌 Helsinki Transit Operations Hub")
@@ -65,12 +76,11 @@ routes_slot = st.empty()
 
 
 # Fast live fragment (Map & KPIs)
-@st.fragment(run_every=refresh_rate)
+@st.fragment(run_every=3)
 def render_live_fleet_view():
     df = queries.fetch_latest_fleet_positions(engine)
     render_kpis(kpi_slot, df)
     render_fleet_map(map_slot, df, st.session_state.map_view)
-
 
 # Slow analytics
 @st.fragment(run_every=30)
