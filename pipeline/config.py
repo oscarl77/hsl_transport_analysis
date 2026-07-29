@@ -1,19 +1,12 @@
 import os
-from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "data" / "transit_analytics.db"
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
     "postgresql://postgres:password@localhost:5432/transit_db" # Fallback for local dev
 )
-
-# Ensure directories exist
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # Digitransit MQTT Settings
 MQTT_BROKER = "mqtt.hsl.fi"
