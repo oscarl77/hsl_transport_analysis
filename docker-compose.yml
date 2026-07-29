@@ -33,7 +33,7 @@ services:
   transit-app:
     build: .
     container_name: local_transit_dashboard
-    command: streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    command: streamlit run dashboard/app.py --server.port 8501 --server.address 0.0.0.0
     ports:
       - "8501:8501" # Maps Streamlit browser UI to http://localhost:8501
     environment:
