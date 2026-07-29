@@ -78,7 +78,7 @@ def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
                     "vehicle_id": str(body.get("veh", "Unknown")),
                     "latitude": float(lat),
                     "longitude": float(lon),
-                    "event_tyoe": event_type,
+                    "event_type": event_type,
                     "delay_seconds": body.get("dl"),
                     "timestamp": body.get("tst") or body.get("tsi"),
                 }
