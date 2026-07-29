@@ -38,6 +38,10 @@ services:
       - "8501:8501" # Maps Streamlit browser UI to http://localhost:8501
     environment:
       - DATABASE_URL=postgresql://transit_user:secret_password@postgres-db:5432/transit_analytics
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
+      - STREAMLIT_SERVER_RUN_ON_SAVE=true
+    volumes:
+      - .:/app
     depends_on:
       postgres-db:
         condition: service_healthy
