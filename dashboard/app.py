@@ -57,11 +57,8 @@ map_slot = st.empty()
 st.divider()
 
 # --- 5. ANALYTICAL TABS (Static Workspace Below Map) ---
-tab_routes = st.tabs(["📊 Route Delay Breakdown"])
-
-with tab_routes:
-    st.subheader("Current Delay & Active Fleet Metrics by Route")
-    routes_slot = st.empty()
+st.subheader("📊 Current Delay & Active Fleet Metrics by Route")
+routes_slot = st.empty()
 
 
 # --- 6. COLOR HELPER FOR MAP ---
