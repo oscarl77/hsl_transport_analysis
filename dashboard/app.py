@@ -14,20 +14,23 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 from pipeline.config import DATABASE_URL
 
-st.html("""
-    <style>
-    /* Prevents PyDeck map container from fading/dimming during fragment ticks */
-    [data-testid="stDeckGlJsonChart"] {
-        opacity: 1 !important;
-        transition: none !important;
-    }
-    </style>
-""")
-
 st.set_page_config(
     page_title="Helsinki Transit Operations Hub",
     page_icon="🚌",
     layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+    /* Disable the dimming effect for stale elements during reruns */
+    [data-testid="stStaleNode"] {
+        opacity: 1 !important;
+        transition: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 # Cached Connection Engine
@@ -49,45 +52,35 @@ if "map_view" not in st.session_state:
 
 # Sidebar controls
 with st.sidebar:
-    
-    st.divider()
     st.markdown("### Map Legend")
     st.markdown("🟢  **On-Time**")
     st.markdown("🟡  **Minor Delay**")
     st.markdown("🔴  **Major Delay**")
-
-    st.divider()
     st.caption("⚡ Live Telemetry: Auto-refreshing every 3s")
+    st.divider()
 
 # Dashboard header
 st.title("🚌 Helsinki Transit Operations Hub")
 st.caption("Real-time telemetry, spatial fleet monitoring, and delay analysis pipeline.")
 st.divider()
 
-# Persistent slots
-kpi_slot = st.empty()
-map_slot = st.empty()
-
-st.divider()
-
-# Analytical tabs 
 st.subheader("📊 Current Delay & Active Fleet Metrics by Route")
-routes_slot = st.empty()
 
 
 # Fast live fragment (Map & KPIs)
 @st.fragment(run_every=3)
 def render_live_fleet_view():
     df = queries.fetch_latest_fleet_positions(engine)
-    render_kpis(kpi_slot, df)
-    render_fleet_map(map_slot, df, st.session_state.map_view)
+    render_kpis( df)
+    render_fleet_map(df, st.session_state.map_view)
 
 # Slow analytics
 @st.fragment(run_every=30)
 def render_analytics_views():
     route_df = queries.fetch_route_delay_breakdown(engine)
-    render_route_table(routes_slot, route_df)
+    render_route_table(route_df)
 
 # Execute fragments
 render_live_fleet_view()
+st.divider()
 render_analytics_views() 

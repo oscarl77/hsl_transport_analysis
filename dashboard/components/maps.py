@@ -1,5 +1,6 @@
 import pydeck as pdk
 import pandas as pd
+import streamlit as st
 
 def get_delay_color(delay_sec: float) -> list[int]:
     if pd.isna(delay_sec) or delay_sec <= 60:
@@ -9,7 +10,7 @@ def get_delay_color(delay_sec: float) -> list[int]:
     else:
         return [231, 76, 60, 220]    # Red
 
-def render_fleet_map(slot, df: pd.DataFrame, view_state: pdk.ViewState) -> None:
+def render_fleet_map(df: pd.DataFrame, view_state: pdk.ViewState) -> None:
     """Updates PyDeck map in-place without triggering block-level dimming."""
     if df.empty:
         return
@@ -31,8 +32,7 @@ def render_fleet_map(slot, df: pd.DataFrame, view_state: pdk.ViewState) -> None:
         tooltip={"text": "Route: {route_id} | Vehicle: {vehicle_id}\nDelay: {delay_seconds}s | Speed: {speed} km/h"},
     )
 
-    # Direct placeholder update + on_select='ignore' completely eliminates map dimming
-    slot.pydeck_chart(
+    st.pydeck_chart(
         deck, 
         width="stretch", 
         on_select="ignore", 
