@@ -21,8 +21,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the source code packages into the application zone
 COPY . .
 
-# Create an explicit directory mount point for our persistent database volume
-RUN mkdir -p /app/data
-
 # 8. Define the container's boot command execution string
 CMD ["python", "run_pipeline.py"]
