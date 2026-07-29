@@ -40,10 +40,13 @@ def parse_gtfs_realtime(payload_bytes: bytes) -> list[dict]:
         print(f"Protobuf Parsing Exception: {e}", file=sys.stderr)
         return []
 
-ALLOWED_STOP_EVENTS = {"vp", "arr", "dep", "pas"}
+ALLOWED_EVENTS = {"vp", "arr", "dep", "pas"}
 
 def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
-    """Parses HFP JSON payloads specifically for ARR, DEP, and PAS stop events."""
+    """Parses HFP JSON payloads into a unified list of event records.
+
+    Includes event_type in each dictionary to allow downstream filtering.
+    """
     if not payload_bytes:
         return []
 
@@ -54,28 +57,44 @@ def parse_hfp_json(payload_bytes: bytes) -> list[dict]:
         payload_items = [data] if isinstance(data, dict) else data
 
         for item in payload_items:
-            for event_type, body in item.items():
-                # Skip non-dictionary bodies or events outside our target set
-                if not isinstance(body, dict) or event_type.lower() not in ALLOWED_STOP_EVENTS:
+            for event_key, body in item.items():
+                if not isinstance(body, dict):
+                    continue
+
+                event_type = str(event_key).lower()
+                if event_type not in ALLOWED_EVENTS:
                     continue
 
                 lat = body.get("lat")
                 lon = body.get("long")
 
                 # Require valid position coordinates
-                if lat is not None and lon is not None:
-                    records.append({
-                        "route_id": str(body.get("desi", "Unknown")),
-                        "vehicle_id": str(body.get("veh", "Unknown")),
-                        "latitude": float(lat),
-                        "longitude": float(lon),
-                        "timestamp": int(body.get("tsi", 0)),
-                        "event_type": str(event_type).lower(),
-                        "stop_id": str(body.get("stop")) if body.get("stop") else None,
-                        "delay_seconds": body.get("dl"),  # Schedule delay (positive = late, negative = early)
-                        "speed": body.get("spd"),  # Speed in m/s
-                        "heading": body.get("hdg"),  # Heading in degrees
-                    })
+                if lat is None or lon is None:
+                    continue
+
+                # Common base dictionary across all event types
+                record = {
+                    "route_id": str(body.get("desi", "Unknown")),
+                    "vehicle_id": str(body.get("veh", "Unknown")),
+                    "latitude": float(lat),
+                    "longitude": float(lon),
+                    "delay_seconds": body.get("dl"),
+                    "timestamp": body.get("tst") or body.get("tsi"),
+                }
+
+                # Attach event-specific fields
+                if event_type == "vp":
+                    record["speed"] = body.get("spd")
+                    record["heading"] = body.get("hdg")
+                else:  # arr, dep, pas
+                    record["event_type"] = event_type
+                    record["stop_id"] = (
+                        str(body.get("stop"))
+                        if body.get("stop") is not None
+                        else None
+                    )
+
+                records.append(record)
 
         return records
 

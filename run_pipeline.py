@@ -5,7 +5,7 @@ from pipeline import config
 from paho.mqtt import client as mqtt_client
 
 from pipeline.database import DatabaseManager
-from pipeline.mqtt_ingestor import BATCH_LIMIT, memory_buffer, parse_gtfs_realtime, parse_hfp_json
+from pipeline.mqtt_ingestor import BATCH_LIMIT, memory_buffer, parse_hfp_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

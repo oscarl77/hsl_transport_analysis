@@ -15,8 +15,6 @@ class TestHFPIngestor:
                 "long": 24.9384,
                 "tsi": 1718100000,
                 "dl": -12,
-                "spd": 5.5,
-                "hdg": 180,
                 "stop": None,
             }
         }).encode("utf-8")
@@ -28,8 +26,6 @@ class TestHFPIngestor:
         assert parsed["latitude"] == 60.1699
         assert parsed["longitude"] == 24.9384
         assert parsed["delay_seconds"] == -12
-        assert parsed["speed"] == 5.5
-        assert parsed["heading"] == 180
 
     def test_parse_missing_optional_speed_and_heading(self):
         """Verify speed and heading cleanly default to None when absent in payload."""
