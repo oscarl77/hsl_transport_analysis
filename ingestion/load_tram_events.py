@@ -8,7 +8,7 @@ from psycopg2.extras import RealDictCursor
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
-from pipeline.config import POSTGRES_URI, GCP_PROJECT, BQ_DATASET, BQ_TABLE
+from pipeline.config import DATABASE_URI, GCP_PROJECT, BQ_DATASET, BQ_TABLE
 
 def get_last_ingested_timestamp(bq_client: bigquery.Client) -> datetime:
     """Fetch maximum created_at timestamp from BigQuery to determine high-water mark."""
@@ -29,7 +29,7 @@ def get_last_ingested_timestamp(bq_client: bigquery.Client) -> datetime:
 
 def extract_from_postgres(start_time: datetime, end_time: datetime) -> list[dict]:
     """Query PostgreSQL for new records between high-water mark and current execution time."""
-    with psycopg2.connect(POSTGRES_URI) as conn:
+    with psycopg2.connect(DATABASE_URI) as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             query = """
                 SELECT id, route_id, vehicle_id, latitude, longitude,
