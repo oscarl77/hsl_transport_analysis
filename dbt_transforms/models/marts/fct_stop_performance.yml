@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: fct_stop_performance
+    description: "Daily aggregated stop performance and schedule adherence metrics per route and stop."
+    columns:
+      - name: performance_date
+        description: "The calendar date of the stop events."
+        tests:
+          - not_null
+
+      - name: route_id
+        description: "Public transit route identifier."
+        tests:
+          - not_null
+
+      - name: stop_id
+        description: "Platform stop identifier."
+
+      - name: on_time_rate_pct
+        description: "Percentage of arrivals/departures meeting HSL on-time criteria (-60s to +120s)."

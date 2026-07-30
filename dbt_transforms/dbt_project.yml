@@ -1,0 +1,26 @@
+name: 'hsl_transit_dbt'
+version: '1.0.0'
+config-version: 2
+
+profile: 'hsl_transit_dbt'
+
+# Directory paths
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  hsl_transit_dbt:
+    # Staging models: view materialization (fast, lightweight)
+    staging:
+      +materialized: view
+    # Marts / Aggregations: table materialization (fast dashboard queries)
+    marts:
+      +materialized: table

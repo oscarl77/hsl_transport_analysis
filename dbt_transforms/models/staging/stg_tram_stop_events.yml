@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: stg_tram_stop_events
+    description: "Deduplicated and standardized tram stop lifecycle events cast into native BigQuery data types."
+    columns:
+      - name: event_id
+        description: "Original event ID from source payload."
+
+      - name: vehicle_id
+        description: "Identifier of the tram emitting telemetry."
+        tests:
+          - not_null
+
+      - name: event_type
+        description: "Normalized event action flag."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['arr', 'dep', 'pas']
+
+      - name: stop_id
+        description: "Target platform stop identifier. Null for pass events."
+
+      - name: delay_seconds
+        description: "Recorded deviation from schedule in seconds."
+        tests:
+          - not_null
+
+      - name: punctuality_status
+        description: "HSL operational status classification (-60s to +120s On Time window)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Early', 'On Time', 'Late']
+
+      - name: event_at
+        description: "BigQuery TIMESTAMP of the event."
+        tests:
+          - not_null

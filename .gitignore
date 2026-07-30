@@ -192,3 +192,5 @@ pyrightconfig.json
 data/*.db
 data/*.db.wal
 *.db
+
+hsl-transit-a17e790ced3a.json
