@@ -6,7 +6,7 @@ hsl_transit_dbt:
       method: service-account
       project: hsl-transit
       dataset: dbt_analytics
-      keyfile: ../hsl-transit-a17e790ced3a.json
+      keyfile: ../secrets/gcp-key.json
       location: EU
       threads: 4
       priority: interactive
