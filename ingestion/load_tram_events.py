@@ -1,4 +1,6 @@
 import sys
+import io
+import json
 from pathlib import Path
 from datetime import datetime, timezone
 from google.cloud import bigquery
@@ -26,11 +28,22 @@ def get_last_ingested_timestamp(bq_client: bigquery.Client) -> datetime:
         # Fallback if table doesn't exist yet
         return datetime(1970, 1, 1, tzinfo=timezone.utc)
 
+def extract_and_load(
+    bq_client: bigquery.Client, start_time: datetime, end_time: datetime
+):
+    """Streams rows from Postgres directly into BigQuery without building giant Python lists."""
+    table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_EVENTS_TABLE}"
 
-def extract_from_postgres(start_time: datetime, end_time: datetime) -> list[dict]:
-    """Query PostgreSQL for new records between high-water mark and current execution time."""
+    # Use an in-memory text buffer (much cheaper than Python lists/dicts)
+    buffer = io.StringIO()
+    row_count = 0
+
     with psycopg2.connect(DATABASE_URI) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        # Server-side cursor prevents fetching 80k rows at once into Python RAM
+        with conn.cursor(
+            name="tram_events_cursor", cursor_factory=RealDictCursor
+        ) as cur:
+            cur.itersize = 10000  # Fetch 10k batch chunks from DB
             query = """
                 SELECT id, route_id, vehicle_id, latitude, longitude,
                        event_type, stop_id, delay_seconds, timestamp, created_at
@@ -39,16 +52,22 @@ def extract_from_postgres(start_time: datetime, end_time: datetime) -> list[dict
                 ORDER BY created_at ASC;
             """
             cur.execute(query, (start_time, end_time))
-            return [dict(row) for row in cur.fetchall()]
 
+            for row in cur:
+                rec = dict(row)
+                rec["timestamp"] = str(rec["timestamp"])
+                rec["created_at"] = str(rec["created_at"])
 
-def load_to_bigquery(bq_client: bigquery.Client, records: list[dict]):
-    """Appends extracted records directly to BigQuery using free batch load jobs."""
-    if not records:
+                # Write line directly to the string buffer
+                buffer.write(json.dumps(rec) + "\n")
+                row_count += 1
+
+    if row_count == 0:
         print("No new records to ingest.")
         return
 
-    table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_EVENTS_TABLE}"
+    # Reset buffer position to start before loading
+    buffer.seek(0)
 
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
@@ -58,19 +77,14 @@ def load_to_bigquery(bq_client: bigquery.Client, records: list[dict]):
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
     )
 
-    # Transform datetimes to strings for JSON serialization
-    formatted_records = []
-    for r in records:
-        rec = dict(r)
-        rec["timestamp"] = str(rec["timestamp"])
-        rec["created_at"] = str(rec["created_at"])
-        formatted_records.append(rec)
+    # Convert text string buffer into bytes stream for BigQuery
+    file_obj = io.BytesIO(buffer.getvalue().encode("utf-8"))
 
-    job = bq_client.load_table_from_json(
-        formatted_records, table_id, job_config=job_config
+    job = bq_client.load_table_from_file(
+        file_obj, table_id, job_config=job_config
     )
-    job.result()  # Wait for completion
-    print(f"Successfully loaded {len(records)} rows into {table_id}.")
+    job.result()  # Wait for BigQuery load to complete
+    print(f"Successfully loaded {row_count} rows into {table_id}.")
 
 
 def run_pipeline():
@@ -80,10 +94,7 @@ def run_pipeline():
     start_time = get_last_ingested_timestamp(bq_client)
     print(f"Extracting records from {start_time} to {execution_time}...")
 
-    records = extract_from_postgres(start_time, execution_time)
-    print(f"Extracted {len(records)} records from PostgreSQL.")
-
-    load_to_bigquery(bq_client, records)
+    extract_and_load(bq_client, start_time, execution_time)
 
 
 if __name__ == "__main__":
