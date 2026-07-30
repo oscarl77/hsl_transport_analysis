@@ -9,9 +9,9 @@ with parsed as (
         cast(stop_id as string) as stop_id,
         cast(delay_seconds as int64) as delay_seconds,
         cast(timestamp as string) as raw_timestamp,
-        parse_timestamp('%Y-%m-%d %H:%M:%E*S%Ez', timestamp) as event_at,
-        parse_timestamp('%Y-%m-%d %H:%M:%E*S%Ez', created_at) as created_at
-    from {{ ref('tram_stop_events') }}
+        safe_cast(timestamp as timestamp) as event_at,
+        safe_cast(created_at as timestamp) as created_at
+    from {{ source('raw_hsl', 'tram_stop_events') }}
 ),
 
 deduplicated as (
@@ -36,7 +36,7 @@ select
     event_at,
     created_at,
     case
-        when delay_seconds > 180 then 'Late'
+        when delay_seconds > 120 then 'Late'
         when delay_seconds < -60 then 'Early'
         else 'On Time'
     end as punctuality_status
