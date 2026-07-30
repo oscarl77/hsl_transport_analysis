@@ -70,6 +70,7 @@ def extract_and_load(
     buffer.seek(0)
 
     job_config = bigquery.LoadJobConfig(
+        autodetect=True,
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
         schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
