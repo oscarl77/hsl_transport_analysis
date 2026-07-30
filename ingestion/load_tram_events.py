@@ -1,15 +1,8 @@
-import os
-from pipeline import config
+from pipeline.config import POSTGRES_URI, GCP_PROJECT, BQ_DATASET, BQ_TABLE
 from datetime import datetime, timezone
 from google.cloud import bigquery
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
-# Config Environment Variables
-POSTGRES_URI = config.DATABASE_URI
-GCP_PROJECT = config.GCP_PROJECT_ID
-BQ_DATASET = config.BQ_DATASET_RAW
-BQ_TABLE = config.BQ_EVENTS_TABLE
 
 def get_last_ingested_timestamp(bq_client: bigquery.Client) -> datetime:
     """Fetch maximum created_at timestamp from BigQuery to determine high-water mark."""
