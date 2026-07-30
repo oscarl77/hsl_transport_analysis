@@ -1,0 +1,6 @@
+version: 2
+
+sources:
+  - name: raw_hsl
+    tables:
+      - name: tram_stop_events
