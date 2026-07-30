@@ -71,9 +71,7 @@ def extract_and_load(
 
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
-        schema_update_options=[
-            bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITIONS
-        ],
+        schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
     )
 
