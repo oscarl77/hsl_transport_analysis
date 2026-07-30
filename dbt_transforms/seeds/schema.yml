@@ -1,0 +1,8 @@
+version: 2
+
+seeds:
+  - name: tram_stop_events
+    config:
+      column_types:
+        timestamp: string
+        created_at: string
