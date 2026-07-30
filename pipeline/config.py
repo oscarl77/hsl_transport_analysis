@@ -8,7 +8,7 @@ DATABASE_URI = os.getenv(
     "postgresql://postgres:password@localhost:5432/transit_db" # Fallback for local dev
 )
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
-BQ_DATASET_RAW = os.getenv("BQ_DATASET_RAW_NAME")
+BQ_DATASET = os.getenv("BQ_DATASET_RAW_NAME")
 BQ_EVENTS_TABLE = os.getenv("BQ_EVENTS_TABLE_NAME")
 
 

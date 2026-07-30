@@ -8,11 +8,11 @@ from psycopg2.extras import RealDictCursor
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
-from pipeline.config import DATABASE_URI, GCP_PROJECT, BQ_DATASET, BQ_TABLE
+from pipeline.config import DATABASE_URI, GCP_PROJECT_ID, BQ_DATASET, BQ_EVENTS_TABLE
 
 def get_last_ingested_timestamp(bq_client: bigquery.Client) -> datetime:
     """Fetch maximum created_at timestamp from BigQuery to determine high-water mark."""
-    table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
+    table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_EVENTS_TABLE}"
     query = f"""
         SELECT COALESCE(MAX(created_at), '1970-01-01 00:00:00+00') as max_created_at
         FROM `{table_id}`
@@ -48,7 +48,7 @@ def load_to_bigquery(bq_client: bigquery.Client, records: list[dict]):
         print("No new records to ingest.")
         return
 
-    table_id = f"{GCP_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
+    table_id = f"{GCP_PROJECT_ID}.{BQ_DATASET}.{BQ_EVENTS_TABLE}"
 
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
