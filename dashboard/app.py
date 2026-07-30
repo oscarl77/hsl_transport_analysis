@@ -12,7 +12,7 @@ from components.charts import render_route_table
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
-from pipeline.config import DATABASE_URL
+from pipeline.config import DATABASE_URI
 
 st.set_page_config(
     page_title="Helsinki Transit Operations Hub",
@@ -36,7 +36,7 @@ st.markdown(
 # Cached Connection Engine
 @st.cache_resource
 def get_db_engine():
-    return create_engine(DATABASE_URL)
+    return create_engine(DATABASE_URI)
 
 engine = get_db_engine()
 

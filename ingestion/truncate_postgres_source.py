@@ -1,4 +1,3 @@
-import os
 import logging
 import psycopg2
 
@@ -24,7 +23,7 @@ def reset_daily_tables(db_url: str) -> None:
         raise
 
 if __name__ == "__main__":
-    db_url = config.DATABASE_URL
+    db_url = config.DATABASE_URI
     if not db_url:
         logger.error("DATABASE_URL environment variable is not set.")
         raise ValueError("DATABASE_URL missing.")

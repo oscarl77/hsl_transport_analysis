@@ -10,7 +10,7 @@ from pipeline.mqtt_ingestor import BATCH_LIMIT, memory_buffer, parse_hfp_json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-db_manager = DatabaseManager(config.DATABASE_URL)
+db_manager = DatabaseManager(config.DATABASE_URI)
 
 def on_connect(client, userdata, flags, reason_code, properties=None):
     """Triggers on initial connection AND automatic reconnections.
