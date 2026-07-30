@@ -1,6 +1,5 @@
 from pathlib import Path
 import sys
-import pandas as pd
 import streamlit as st
 import pydeck as pdk
 from sqlalchemy import create_engine
