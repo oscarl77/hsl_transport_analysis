@@ -1,7 +1,12 @@
+import sys
 import logging
 import psycopg2
+from pathlib import Path
 
-from pipeline import config
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+from pipeline.config import DATABASE_URI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +28,7 @@ def reset_daily_tables(db_url: str) -> None:
         raise
 
 if __name__ == "__main__":
-    db_url = config.DATABASE_URI
+    db_url = DATABASE_URI
     if not db_url:
         logger.error("DATABASE_URL environment variable is not set.")
         raise ValueError("DATABASE_URL missing.")
