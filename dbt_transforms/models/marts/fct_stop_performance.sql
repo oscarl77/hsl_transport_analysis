@@ -4,6 +4,7 @@ with staging as (
 
 select
     date(event_at) as performance_date,
+    EXTRACT(HOUR FROM event_at) AS performance_hour,
     route_id,
     stop_id,
     count(distinct vehicle_id) as active_vehicles_count,
@@ -14,6 +15,6 @@ select
     countif(punctuality_status = 'Late') as late_count,
     countif(punctuality_status = 'Early') as early_count,
     countif(punctuality_status = 'On Time') as on_time_count,
-    round(safe_divide(countif(punctuality_status = "On Time"), count(*)) * 100, 2) as on_time_rate_pct
+    round(safe_divide(countif(punctuality_status = 'On Time'), count(*)) * 100, 2) as on_time_rate_pct
 from staging
-group by 1, 2, 3
+group by 1, 2, 3, 4
